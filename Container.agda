@@ -53,7 +53,7 @@ _∘c_ : Container Type → Container Type → Container Type
 (S ◁ P) ∘c (Q ◁ R) = (Σ Q (λ q → R q → S)) ◁ ( λ { (q , f) → Σ (R q) (λ r → P (f r)) })
 
 -- Composition is indeed composition
-module _ (F G : Container Type) (X : Set) where
+module Composition-correctness (F G : Container Type) (X : Set) where
   open Container F renaming ( Shapes to S ; Positions to P )
   open Container G renaming ( Shapes to Q ; Positions to R )
 

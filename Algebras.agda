@@ -44,6 +44,7 @@ trans-unit-r refl = refl
 -- We postulate these laws for the time being.
 postulate
   id-unit-l : {X Y : obj} {t : hom X Y} → comp {X} {Y} {Y} id t ≡ t
+
 -- id-unit-l {X , θ} {Y , ρ} {f , comm} = 
 --   cong (λ p → f , p) 
 --        (begin
