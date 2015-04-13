@@ -1,9 +1,11 @@
 module Monad where
 
+open import Relation.Binary.PropositionalEquality
 open import Container
 open import Category
 open import Data.Unit
 open import Data.Product
+open import Function renaming ( _∘_ to _∘'_ )
 
 record ContainerMonad (M : Container Type) : Set where
   constructor mk-cont-monad
@@ -12,36 +14,51 @@ record ContainerMonad (M : Container Type) : Set where
   
   field
     s : S -- Every s : S gives rise to a natural transformation 1 -> M.
-    θ : Σ S (λ q → P q → S) → S -- M-algebra structure on S.
-    ρ : (st : Σ S (λ q → P q → S)) → P (θ st) → Σ (P (proj₁ st)) (λ r → P (proj₂ st r))
+    θ : (s : S) → (t : P s → S) → S 
+    ρ₀ : (s : S) → (t : P s → S) → P (θ s t) → P s
+    ρ₁ : (s : S) → (t : P s → S) → (p : P (θ s t)) → P (t (ρ₀ s t p))
 
 module _ {M : Container Type} (mon : ContainerMonad M) where
   open ContainerMonad mon
+
+  open Container.Container M renaming ( Shapes to S ; Positions to P )
+
+  ρ : (s : S) → (t : P s → S) → P (θ s t) → Σ (P s) (λ r → P (t r))
+  ρ s t p = ρ₀ s t p , ρ₁ s t p
 
   η-morphism : ContainerMorphism Id M
   η-morphism = mk-cont-morphism (λ _ → s) (λ _ _ → tt)
 
   μ-morphism : ContainerMorphism (M ∘ M) M
-  μ-morphism = mk-cont-morphism θ ρ
+  μ-morphism = mk-cont-morphism (uncurry θ) (uncurry ρ)
 
   η : (X : Set) → X → ⟦ M ⟧₀ X
   η X x = s , (λ _ → x)
 
-  μ' : (X : Set) → ⟦ M ∘ M ⟧₀ X → ⟦ M ⟧₀ X
-  μ' X (s , t) = θ s , (λ z → t (ρ s z))
-
-  -- TODO: Do this generally in Container.agda
-  to : (X : Set) → ⟦ M ⟧₀ (⟦ M ⟧₀ X) → ⟦ M ∘ M ⟧₀ X
-  to X (α , β) = (α , (λ x → proj₁ (β x))) , (λ { (p , p') → proj₂ (β p) p' })
-  
   μ : (X : Set) → ⟦ M ⟧₀ (⟦ M ⟧₀ X) → ⟦ M ⟧₀ X
-  μ X (s , t) with to X (s , t)
-  ... | α , β = θ α , (λ x → β (ρ α x))
+  μ X (s , t) = θ s (proj₁ ∘' t) , (λ x → proj₂ (t (ρ₀ s (proj₁ ∘' t) x)) (ρ₁ s (proj₁ ∘' t) x))
 
-record MonadAlgebra {M : Container Type} (mon : ContainerMonad M) (X : Set) (h : ⟦ M ⟧₀ X → X) : Set₁ where
-  constructor mk-monad-alg
+  -- Here we are trying to specialise the monad laws to container
+  -- monads.
+  module _ (X : Set) where
+    μ-assoc : Set
+    μ-assoc = (x : ⟦ M ⟧₀ (⟦ M ⟧₀ (⟦ M ⟧₀ X))) → μ _ (⟦ M ⟧₁ (μ X) x) ≡ μ _ (μ (⟦ M ⟧₀ X) x)
 
-  open Container.Container M renaming ( Shapes to S ; Positions to P )
-  open ContainerMonad mon
+    η-left-unit : Set
+    η-left-unit = (x : ⟦ M ⟧₀ X) → x ≡ μ _ (⟦ M ⟧₁ (η X) x)
+  
+    -- For any s, t : (s : S) × (P s → X)
+    --  - θ s' (const s) ≡ s'
+    --  - θ s (const s') ≡ s'
+    --  - t ≡ t ∘ (ρ₀ s' (const s)) -- left
+    --  - t ≡ t ∘ (ρ₁ s (const s')) -- right
+    -- Types of these?
 
+    η-right-unit : Set
+    η-right-unit = (x : ⟦ M ⟧₀ X) → x ≡ μ _ (η (⟦ M ⟧₀ X) x)
+
+    -- -- This will be very messy.
+    -- module _ (θ-law : (s' : S) → θ s' (const s) ≡ s) where -- (ρ₀-law : (s' : S) (t : P s' → X) → t ≡ t ∘ (ρ₀ s' (const s))) where --(ρ₀-law : t ≡ t ∘ (ρ₀ s (const s))) where
+    --   η-left-unit-pf : η-left-unit
+    --   η-left-unit-pf (s' , t) = {!!}
 

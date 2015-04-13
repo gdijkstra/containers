@@ -49,11 +49,31 @@ module _ {C : Category} where
       }
 
 -- Composition of containers
-_∘_ : Container Type → Container Type → Container Type
-(S ◁ P) ∘ (Q ◁ R) = (Σ Q (λ q → R q → S)) ◁ ( λ { (q , f) → Σ (R q) (λ r → P (f r)) })
+_∘c_ : Container Type → Container Type → Container Type
+(S ◁ P) ∘c (Q ◁ R) = (Σ Q (λ q → R q → S)) ◁ ( λ { (q , f) → Σ (R q) (λ r → P (f r)) })
 
-Id : Container Type
-Id = ⊤ ◁ (λ _ → ⊤)
+-- Composition is indeed composition
+module _ (F G : Container Type) (X : Set) where
+  open Container F renaming ( Shapes to S ; Positions to P )
+  open Container G renaming ( Shapes to Q ; Positions to R )
+
+  open import Function renaming ( _∘_ to _∘'_ )
+
+  to : ⟦ F ⟧₀ (⟦ G ⟧₀ X) → ⟦ G ∘c F ⟧₀ X
+  to (s , t) = (s , proj₁ ∘' t) , (λ { (p , r) → proj₂ (t p) r }) 
+
+  from : ⟦ G ∘c F ⟧₀ X → ⟦ F ⟧₀ (⟦ G ⟧₀ X)
+  from ((s , t) , u) = s , (λ p → (t p) , (λ r → u (p , r)))
+
+  to-from : (x : ⟦ G ∘c F ⟧₀ X) → x ≡ to (from x)
+  to-from ((_ , _) , _) = refl
+  
+  -- This holds by function extensionality, I guess.
+  --from-to : (x : ⟦ F ⟧₀ (⟦ G ⟧₀ X)) → x ≡ from (to x)
+  --from-to (s , t) = {!!}
+
+Idc : Container Type
+Idc = ⊤ ◁ (λ _ → ⊤)
 
 -- Container morphisms
 module _ {C : Category} (F G : Container C) where
@@ -84,7 +104,6 @@ module _ {C : Category} (F G : Container C) where
   naturality (mk-cont-morphism a b) X Y f (s , t) = cong (λ x → a s , x) (Category.comp-assoc C f t (b s))
 
   -- Hence naturality holds strictly if associativity holds strictly in C.
-
 module _ {C : Category} {F G : Container C} (α : ContainerMorphism F G) where
   open import FunExt
 
@@ -102,3 +121,7 @@ module _ {C : Category} {F G : Container C} (α : ContainerMorphism F G) where
                                (λ x → naturality F G α X Y f x)
     }
 
+-- TODO: Formalise this, alternative formulation of container morphisms
+--   (f : S -> Q) × (g : (s : S) -> C(R (f s), P s))
+-- ≃ (s : S) -> (q : Q) × C(R q, P s)
+-- ≡ (s : S) -> [| Q ◁ R |] (P s)
