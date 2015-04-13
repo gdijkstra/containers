@@ -67,10 +67,14 @@ module Composition-correctness (F G : Container Type) (X : Set) where
 
   to-from : (x : ⟦ G ∘c F ⟧₀ X) → x ≡ to (from x)
   to-from ((_ , _) , _) = refl
-  
-  -- This holds by function extensionality, I guess.
-  --from-to : (x : ⟦ F ⟧₀ (⟦ G ⟧₀ X)) → x ≡ from (to x)
-  --from-to (s , t) = {!!}
+ 
+  open import FunExt
+
+  η-Σ : {A : Set} {B : A → Set} (x : Σ A B) → x ≡ proj₁ x , proj₂ x
+  η-Σ (proj₁ , proj₂) = refl
+
+  from-to : (x : ⟦ F ⟧₀ (⟦ G ⟧₀ X)) → x ≡ from (to x)
+  from-to (s , t) = cong (λ r → s , r) (fun-ext _ _ (λ x → η-Σ _))
 
 Idc : Container Type
 Idc = ⊤ ◁ (λ _ → ⊤)
