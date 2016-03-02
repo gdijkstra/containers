@@ -1,2 +1,3 @@
 # containers
-Some code regarding (generalised) containers
+
+Some code regarding containers and their variations
