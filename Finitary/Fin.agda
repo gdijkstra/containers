@@ -108,3 +108,23 @@ fsigmacase : (A : ℕ) (B : Fin A → ℕ) (i : Σ-Fin A B) → Σ (Fin A) (λ j
 fsigmacase A B i with sigmaView A B i
 fsigmacase A B .(fdpair A B i j) | dpair .A .B i j = i , j
 
+exp : ℕ → ℕ → ℕ
+exp y O = 1
+exp y (S x) = y * (exp y x)
+
+flam : (x y : ℕ) → (Fin x → Fin y) → Fin (exp y x)
+flam O y f = fZ
+flam (S x) y f = fpair (f fZ) (flam x y (f ∘ fS))
+
+data LamView : {x y : ℕ} → Fin (exp y x) → Type0 where
+  lam : {x y : ℕ} (f : Fin x → Fin y) → LamView {x} {y} (flam x y f)
+  
+-- pairView : {n m : ℕ} → (i : Fin (n * m)) → PairView {n} {m} i
+-- pairView {O} ()
+-- pairView {S n} {m} i with plusView {m} {n * m} i
+-- pairView {S n} {m} ._ | inl j = pair fZ j
+-- pairView {S n} {m} ._ | inr j with pairView {n} {m} j
+-- pairView {S n} ._ | inr ._ | pair i j = pair (fS i) j
+
+-- TODO: this
+--lamView : {x y : ℕ} → (f : Fin (exp y x)) → ?
