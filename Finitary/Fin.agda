@@ -112,19 +112,32 @@ exp : ℕ → ℕ → ℕ
 exp y O = 1
 exp y (S x) = y * (exp y x)
 
-flam : (x y : ℕ) → (Fin x → Fin y) → Fin (exp y x)
-flam O y f = fZ
-flam (S x) y f = fpair (f fZ) (flam x y (f ∘ fS))
+flam : {x y : ℕ} → (Fin x → Fin y) → Fin (exp y x)
+flam {O} {y} f = fZ
+flam {S x} {y} f = fpair (f fZ) (flam {x} {y} (f ∘ fS))
 
 data LamView : {x y : ℕ} → Fin (exp y x) → Type0 where
-  lam : {x y : ℕ} (f : Fin x → Fin y) → LamView {x} {y} (flam x y f)
-  
--- pairView : {n m : ℕ} → (i : Fin (n * m)) → PairView {n} {m} i
--- pairView {O} ()
--- pairView {S n} {m} i with plusView {m} {n * m} i
--- pairView {S n} {m} ._ | inl j = pair fZ j
--- pairView {S n} {m} ._ | inr j with pairView {n} {m} j
--- pairView {S n} ._ | inr ._ | pair i j = pair (fS i) j
+  lam : {x y : ℕ} (f : Fin x → Fin y) → LamView {x} {y} (flam f)
 
--- TODO: this
---lamView : {x y : ℕ} → (f : Fin (exp y x)) → ?
+insert : {x y : ℕ} → Fin y → (Fin x → Fin y) → Fin (S x) → Fin y
+insert p f fZ = p
+insert p f (fS q) = f q
+
+lamView : {x y : ℕ} → (f : Fin (exp y x)) → LamView {x} {y} f
+lamView {O} fZ = lam (λ ())
+lamView {O} (fS ())
+lamView {S x} {y} f with pairView {y} {exp y x} f
+lamView {S x} {y} .(fpair i j) | pair i j with lamView {x} {y} j
+lamView {S x} ._ | pair i ._ | lam f = lam (insert i f)
+
+malf : {x y : ℕ} → Fin (exp y x) → (Fin x → Fin y)
+malf {x} {y} f with lamView {x} {y} f
+malf .(flam f) | lam f = f
+
+flam-malf : {x y : ℕ} → (f : Fin (exp y x)) → flam {x} {y} (malf {x} {y} f) == f
+flam-malf {x} {y} f with lamView {x} {y} f
+flam-malf .(flam f) | lam f = idp
+
+-- malf-flam : {x y : ℕ} → (f : Fin x → Fin y) (z : Fin x) → malf {x} {y} (flam {x} {y} f) z == f z
+-- malf-flam {O} f ()
+-- malf-flam {S x} f z = {!!}
